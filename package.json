@@ -1,0 +1,17 @@
+{
+  "engines": {
+    "node": "=4.2.1"
+  },
+  "name": "azure-mobile-apps-quickstarts.backend.node.TodoSample",
+  "version": "0.0.1",
+  "description": "Quickstart completed Azure Mobile Apps for Node.js backend.",
+  "author": "@ggailey777",
+  "repository": "Azure-Samples/app-service-mobile-nodejs-backend-quickstart",
+  "license": "MIT",
+  "dependencies": {
+    "azure-mobile-apps": "^2.0.0",
+    "express": "^4.13.0",
+    "swagger-ui": "^2.1.4"
+  },
+  "devDependencies": {}
+}
