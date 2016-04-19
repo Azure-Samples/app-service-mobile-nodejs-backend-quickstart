@@ -10,17 +10,20 @@ var table = azureMobileApps.table();
 
 table.insert(function (context) {
 
-// Define the template payload.
-var payload = '{"messageParam": context.item.text}'; 
+// Define the template payload and userId tag.
+var payload = '{"messageParam":' + context.item.text + '}'; 
+
+// Get the current user SID and create a tag for the current user.
+var userTag = "_UserId:" + context.user.id;
 
 // Execute the insert.  The insert returns the results as a Promise,
 // Do the push as a post-execute action within the promise flow.
 return context.execute()
     .then(function (results) {
-        // Only do the push if configured
+        // Only do the push if configured.
         if (context.push) {
-            // Send a template notification.
-            context.push.send(null, payload, function (error) {
+            // Send a template notification to the user ID.
+            context.push.send(userTag, payload, function (error) {
                 if (error) {
                     logger.error('Error while sending push notification: ', error);
                 } else {

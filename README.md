@@ -36,11 +36,7 @@ Follow the instructions in the topic to configure the Mobile App backend to use 
 + [Microsoft account](https://azure.microsoft.com/documentation/articles/app-service-mobile-how-to-configure-microsoft-authentication/)
 + [Twitter](https://azure.microsoft.com/documentation/articles/app-service-mobile-how-to-configure-twitter-authentication/)
 
-The following line of code is added to the server script to make sure that requests must contain an App Service authentication header (*X-ZUMO-AUTH*) with a valid token:
-
-	table.access = 'authenticated';
-
-For more information, see [How to: Require authentication for access to tables](https://azure.microsoft.com/documentation/articles/app-service-mobile-node-backend-how-to-use-server-sdk/#howto-tables-auth).
+Access to the TodoItem table is restricted to only authenticated users. Authorization for operations against the this table is defined in the [todoitem.json file](./tables/TodoItem.json). Access to the custom API is restricted by the authorization and authentication middleware. 
 
 ## Configure push notifications
 
@@ -54,11 +50,9 @@ See the client sample readme files for instructions on how configure Notificatio
 
 ## Publish the project to Azure
 
-To be able to test this project with one of the corresponding client apps, you need to publish the project to your Mobile App backend in Azure: 
+To be able to test this project with one of the corresponding client apps, you need to publish the project to your Mobile App backend in Azure. For information on deploying this Git repository to your Mobile App backend, see [Deploy your project](https://azure.microsoft.com/en-us/documentation/articles/web-sites-publish-source-control/#Step5) in Continuous deployment using GIT in Azure App Service.
 
-
-
-Now you are ready to test. Because authentication is enabled on this project, it is much harder to test using a REST client since you will need to present an X-ZUMO-AUTH header in the request that contains a valid access token.
+After successful deployment, you are ready to test. Because authentication is enabled on this project, it is much harder to test using a REST client since you will need to present an X-ZUMO-AUTH header in the request that contains a valid access token.
 
 ## Implementation notes 
 This section highlights changes made to the original tutorial samples and other design decisions were made when implementing all of the features or Mobile Apps in the same client app. 
@@ -66,68 +60,73 @@ This section highlights changes made to the original tutorial samples and other 
 ###Push to users
 The push notification tutorial sends broadcast push notifications to all registrations. Because authentication is enabled in the backed, all push notification registration requests handled by the backend from Mobile Apps clients get a userId tag added to the registration automatically. This tag can then be used to send push notifications to a specific user. The code below gets the userID for the logged in user and uses it to send a notification to only that user.
 
-	// Get the settings for the server project.
-    HttpConfiguration config = this.Configuration;
-    MobileAppSettingsDictionary settings =
-        this.Configuration.GetMobileAppSettingsProvider().GetMobileAppSettings();
-
-    // Get the Notification Hubs credentials for the Mobile App.
-    string notificationHubName = settings.NotificationHubName;
-    string notificationHubConnection = settings
-        .Connections[MobileAppSettingsKeys.NotificationHubConnectionString].ConnectionString;
-
-    // Create the notification hub client.
-    NotificationHubClient hub = NotificationHubClient
-        .CreateClientFromConnectionString(notificationHubConnection, notificationHubName);
-
-    // Get the current user SID and create a tag for the current user.
-    var claimsPrincipal = this.User as ClaimsPrincipal;
-    string sid = claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier).Value;
-    string userTag = "_UserId:" + sid;
-
-    // Build a dictionary for the template with the item message text.
-    var notification = new Dictionary<string, string> { { "message", item.Text } };
-
-    try
-    {
-        // Send a template notification to the user ID.
-        await hub.SendTemplateNotificationAsync(notification, userTag);
-    }
-    catch (System.Exception)
-    {
-        throw new HttpResponseException(System.Net.HttpStatusCode.InternalServerError);
-    }
+	// Define the template payload and userId tag.
+	var payload = '{"messageParam":' + context.item.text + '}'; 
+	
+	// Get the current user SID and create a tag for the current user.
+	var userTag = "_UserId:" + context.user.id;
+	
+	// Execute the insert.  The insert returns the results as a Promise,
+	// Do the push as a post-execute action within the promise flow.
+	return context.execute()
+	    .then(function (results) {
+	        // Only do the push if configured.
+	        if (context.push) {
+	            // Send a template notification to the user ID.
+	            context.push.send(userTag, payload, function (error) {
+	            	// Do some error logic here...    				
+	            });
+	        }
+	        // Don't forget to return the results from the context.execute()
+	        return results;
+	    });
 
 If the user has registered on multiple devices, each device will get a notification.
 
 ###Template push notification registration
-The original push notification tutorial used native registrations. This sample has been changed to use a template registration, which makes it easier to send push notifications to users on multiple clients from a single **send** method call. You can see in the above code that the **SendTemplateNotificationAsync()** method is called, which sends a notification to all platforms.
+The original push notification tutorial used native registrations. This sample has been changed to use a template registration, which makes it easier to send push notifications to users on multiple clients from a single **send** method call. You can see in the above code that the **send()** method is called, which sends a notification to all platforms.
 
-For more information, see [How to: Register push templates to send cross-platform notifications](https://azure.microsoft.com/documentation/articles/app-service-mobile-dotnet-how-to-use-client-library/#how-to-register-push-templates-to-send-cross-platform-notifications).
+For more information, see [How to: Send push notifications](https://azure.microsoft.com/documentation/articles/app-service-mobile-node-backend-how-to-use-server-sdk/#push-user).
 
 ###Client-added push notification tags
 When a mobile app registers for push notifications using an Azure App Service Mobile Apps backend, there are two default tags that can get added to the registration in Azure Notification Hubs: the installation ID, which is unique to the app on a given device, and the user ID, which is only added when the user has been previously authenticated. Any other tags that get supplied by the client are ignored, which is by design. (Note that this differs from Mobile Services, where the client could supply any tag and there were hooks into the registration process on the backend to validate tags on incoming registrations.) 
 
-Because the client can’t add tags and at the same time there are no service-side hooks into the push notification registration process, the client needs to do the work of adding new tags to a given registration. In this sample, there is an **UpdateTagsController** that defines an `/updatetags` endpoint to enable clients to add tags to their push registration. The client calls that endpoint with its *installationId* to create new tags. 
+Because the client can’t add tags and at the same time there are no service-side hooks into the push notification registration process, the client needs to do the work of adding new tags to a given registration. In this sample, there is an **UpdateTags.js** custom API file that defines an `/updatetags` endpoint to enable clients to add tags to their push registration. The client calls that endpoint with its *installationId* to create new tags. 
 
 The following code updates and installation to add user-supplied tags:
 
-    // Verify that the tags are a valid JSON array.
-    var tags = JArray.Parse(message);
-               
-    // Define a collection of PartialUpdateOperations. Note that 
-    // only one '/tags' path is permitted in a given collection.
-    var updates = new List<PartialUpdateOperation>();
+	// Get the notification hub used by the mobile app.
+	var push = request.azureMobile.push;
+	var installationId = request.params.id;
 
-    // Add a update operation for the tag.
-    updates.Add(new PartialUpdateOperation
-    {
-        Operation = UpdateOperationType.Add,
-        Path = "/tags",
-        Value = tags.ToString()
-    });
+	// Get the tags array from the request message.
+	var tags = request.body;
 
-    // Add the requested tag to the installation.
-    await hubClient.PatchInstallationAsync(Id, updates);
+	// Validate for and block any SID tags.
+	for (i = 0; i < tags.length; i++) {
+		if (tags[i].search("sid:") !== -1) {
+				response.status(403)
+				.send("You cannot set '" + tags[i] + "' as a tag.");
+				return;
+		}
+	}
+	
+	// Define an update tags operation.
+	var updateOperation = [{
+		"op": "add",
+		"path": "/tags",
+		"value": tags.toString()
+	}];		
+	
+	// Update the installation to add the new tags.
+	push.patchInstallation(installationId, updateOperation, function(error, res){
+		if(error){
+			logger.error('An error occurred when adding tags', error);
+			response.status(error.statusCode).send(error.detail);
+		}
+		else{
+			response.status(200).send(tags);
+		}
+	});
 
-For more information, see [Adding push notification tags from an Azure Mobile Apps client](http://blogs.msdn.com/b/writingdata_services/archive/2016/01/22/adding-push-notification-tags-from-an-azure-mobile-apps-client.aspx).
+Note that due to the limitations of the default custom API implementation in Mobile Apps, we needed to use an express.js Router to handle passing the installation ID in the URL. This also required us to pass the authentication and authorization middleware to the router. For more information, see [Adding push notification tags from the client](https://blogs.msdn.microsoft.com/writingdata_services/2016/04/14/adding-push-notification-tags-from-a-node-js-backend/).

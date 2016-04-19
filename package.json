@@ -4,9 +4,9 @@
   },
   "name": "azure-mobile-apps-quickstarts.backend.node.TodoSample",
   "version": "0.0.1",
-  "description": "Samples for Azure Mobile Apps",
-  "author": "Microsoft",
-  "repository": "Azure/azure-mobile-apps-quickstarts",
+  "description": "Quickstart completed Azure Mobile Apps for Node.js backend.",
+  "author": "@ggailey777",
+  "repository": "Azure-Samples/app-service-mobile-nodejs-backend-quickstart",
   "license": "MIT",
   "dependencies": {
     "azure-mobile-apps": "^2.0.0",
