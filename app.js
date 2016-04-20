@@ -5,7 +5,7 @@
 // This is a base-level Azure Mobile App SDK.
 var express = require('express'),
 	bodyParser = require('body-parser'),
-    azureMobileApps = require('azure-mobile-apps'),
+    	azureMobileApps = require('azure-mobile-apps'),
 	logger = require('azure-mobile-apps/src/logger');
 
 // Obtain our custom API, which exports an express Router.
@@ -18,7 +18,6 @@ var app = express();
 // anything like logging, registering middleware, etc. here
 
 app.use(bodyParser.json({ strict: false }));
-//app.use(bodyParser.text());
 app.use(bodyParser.urlencoded({ extended: true }));	
 
 // Configuration of the Azure Mobile Apps can be done via an object, the
@@ -43,13 +42,13 @@ mobileApp.api.import('./api');
 // and returns a Promise.
 mobileApp.tables.initialize()
     .then(function () {
-		// Register the Azure Mobile Apps middleware.
+	// Register the Azure Mobile Apps middleware.
         app.use(mobileApp);    	
 		
-		// Register the router we configure in our custom API module
-		// This must be done after registering the mobile app.
-		app.use('/api/updatetags', updateTagsApi(mobileApp.configuration));
-		
-		// Listen for requests.
+	// Register the router we configure in our custom API module
+	// This must be done after registering the mobile app.
+	app.use('/api/updatetags', updateTagsApi(mobileApp.configuration));
+	
+	// Listen for requests.
         app.listen(process.env.PORT || 3000);   		
     });

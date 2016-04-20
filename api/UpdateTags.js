@@ -1,3 +1,7 @@
+// ----------------------------------------------------------------------------
+// Copyright (c) 2015 Microsoft Corporation. All rights reserved.
+// ----------------------------------------------------------------------------
+
 var express = require('express');
 
 // Require the Mobile Apps authentication and authorization middleware. 
