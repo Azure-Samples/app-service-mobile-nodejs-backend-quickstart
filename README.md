@@ -1,3 +1,8 @@
+---
+services: app-service\mobile
+platforms: nodejs
+author: ggailey777
+---
 # App Service Mobile completed quickstart for Node.js backend
 This repository contains a Node.js Mobile App project based on the App Service Mobile Apps quickstart project, which you can download from the [Azure portal](https://portal.azure.com). This project has been enhanced by the addition of offline sync, authentication, and push notification functionality. This sample demonstrates how to best integrate the various Mobile Apps features. This readme topic contains the following information to help you run the sample app project and to better understand the design decisions.
 
