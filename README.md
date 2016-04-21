@@ -98,7 +98,7 @@ When a mobile app registers for push notifications using an Azure App Service Mo
 
 Because the client can’t add tags and at the same time there are no service-side hooks into the push notification registration process, the client needs to do the work of adding new tags to a given registration. In this sample, there is an **UpdateTags.js** custom API file that defines an `/updatetags` endpoint to enable clients to add tags to their push registration. The client calls that endpoint with its *installationId* to create new tags. 
 
-The following code updates and installation to add user-supplied tags:
+The following code updates an installation to add user-supplied tags:
 
 	// Get the notification hub used by the mobile app.
 	var push = request.azureMobile.push;
