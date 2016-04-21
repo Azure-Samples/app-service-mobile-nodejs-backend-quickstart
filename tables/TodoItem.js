@@ -1,6 +1,3 @@
-// ----------------------------------------------------------------------------
-// Copyright (c) 2015 Microsoft Corporation. All rights reserved.
-// ----------------------------------------------------------------------------
 
 var azureMobileApps = require('azure-mobile-apps'),
 promises = require('azure-mobile-apps/src/utilities/promises'),
